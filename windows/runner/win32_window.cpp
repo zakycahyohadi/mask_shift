@@ -1,3 +1,4 @@
+git push -u origin main
 #include "win32_window.h"
 
 #include <dwmapi.h>
