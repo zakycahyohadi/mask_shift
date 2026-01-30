@@ -12,13 +12,23 @@ void main() {
 class MaskShiftGame extends FlameGame with HasKeyboardHandlerComponents, HasCollisionDetection {
   @override
   Future<void> onLoad() async {
+    // Asset di asset/images/, pakai path penuh
+    images.prefix = '';
+
+    // 0. Background (sky paling belakang, city di depannya)
+    final sky = await loadSprite('asset/images/bg_sky.png');
+    final city = await loadSprite('asset/images/bg_city.jpg');
+    final bgSize = camera.viewport.size;
+    add(SpriteComponent(sprite: sky, size: bgSize, position: Vector2.zero())..priority = -2);
+    add(SpriteComponent(sprite: city, size: bgSize, position: Vector2.zero())..priority = -1);
+
     // 1. Tambahkan Lantai-lantai (Sekarang bisa bertingkat!)
-    add(Platform(Vector2(0, 550), Vector2(1200, 50))); 
+    add(Platform(Vector2(0, 550), Vector2(1200, 50)));
     add(Platform(Vector2(400, 400), Vector2(200, 20))); // Platform gantung
-    
+
     // 2. Tambahkan Player
     add(Player(Vector2(100, 300)));
-    
+
     // 3. Tambahkan Topeng
     add(MaskItem(Vector2(450, 350), Colors.blue, 'light'));
     add(MaskItem(Vector2(800, 480), Colors.red, 'heavy'));
@@ -38,8 +48,8 @@ class Player extends SpriteComponent with KeyboardHandler, HasGameRef<MaskShiftG
 
   @override
   Future<void> onLoad() async {
-    // Flame default prefix = assets/images/, jadi cukup nama file
-    sprite = await gameRef.loadSprite('Main Character.png');
+    // Path penuh karena game pakai images.prefix = ''
+    sprite = await gameRef.loadSprite('asset/images/Main Character.png');
     add(RectangleHitbox(
       size: Vector2(size.x * 0.4, size.y), // Hitbox ramping biar gak gampang nyangkut
       position: Vector2(size.x * 0.3, 0),
