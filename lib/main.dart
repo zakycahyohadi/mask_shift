@@ -12,21 +12,22 @@ void main() {
 class MaskShiftGame extends FlameGame with HasKeyboardHandlerComponents, HasCollisionDetection {
   @override
   Future<void> onLoad() async {
-    // 1. Tambahkan Lantai-lantai (Sekarang bisa bertingkat!)
-    add(Platform(Vector2(0, 550), Vector2(1200, 50))); 
-    add(Platform(Vector2(400, 400), Vector2(200, 20))); // Platform gantung
+    // Tambahkan Lantai
+    add(Platform(Vector2(0, 550), Vector2(1200, 50)));
     
-    // 2. Tambahkan Player
+    // Tambahkan Player
     add(Player(Vector2(100, 300)));
     
-    // 3. Tambahkan Topeng
-    add(MaskItem(Vector2(450, 350), Colors.blue, 'light'));
-    add(MaskItem(Vector2(800, 480), Colors.red, 'heavy'));
+    // Tambahkan Topeng Biru (Ringan) di tengah jalan
+    add(MaskItem(Vector2(400, 480), Colors.blue, 'light'));
+    
+    // Tambahkan Topeng Merah (Berat) lebih jauh
+    add(MaskItem(Vector2(700, 480), Colors.red, 'heavy'));
   }
 }
 
-// --- CLASS PLAYER DENGAN GAMBAR (SPRITE) ---
-class Player extends SpriteComponent with KeyboardHandler, HasGameRef<MaskShiftGame>, CollisionCallbacks {
+// --- CLASS PLAYER ---
+class Player extends RectangleComponent with KeyboardHandler, HasGameRef<MaskShiftGame>, CollisionCallbacks {
   Vector2 velocity = Vector2.zero();
   double gravity = 1000;
   double jumpSpeed = -500;
@@ -34,33 +35,36 @@ class Player extends SpriteComponent with KeyboardHandler, HasGameRef<MaskShiftG
   int horizontalInput = 0;
   bool isOnGround = false;
 
-  Player(Vector2 pos) : super(position: pos, size: Vector2(64, 110)); // Ukuran disesuaikan dengan karakter pixel art tadi
+  Player(Vector2 pos) : super(
+    position: pos, 
+    size: Vector2(50, 50), 
+    paint: Paint()..color = Colors.white
+  );
 
   @override
   Future<void> onLoad() async {
-    sprite = await gameRef.loadSprite('asset/images/Main Character.png'); // Pastikan file ada di assets/images/
-    add(RectangleHitbox(
-      size: Vector2(size.x * 0.4, size.y), // Hitbox ramping biar gak gampang nyangkut
-      position: Vector2(size.x * 0.3, 0),
-    ));
+    // Tambahkan hitbox supaya bisa tabrakan
+    add(RectangleHitbox());
   }
 
   @override
   void update(double dt) {
     super.update(dt);
     
-    // Gerak Kiri-Kanan
+    // Input Gerak Horizontal
     velocity.x = horizontalInput * moveSpeed;
     
-    // Gravitasi & Posisi
+    // Gravitasi
     velocity.y += gravity * dt;
     position += velocity * dt;
 
-    // Flip Karakter (Menghadap arah jalan)
-    if (horizontalInput > 0 && scale.x < 0) {
-      flipHorizontallyAroundCenter();
-    } else if (horizontalInput < 0 && scale.x > 0) {
-      flipHorizontallyAroundCenter();
+    // Batas bawah sementara (Ground simple logic)
+    if (position.y > 500) {
+      position.y = 500;
+      velocity.y = 0;
+      isOnGround = true;
+    } else {
+      isOnGround = false;
     }
   }
 
@@ -72,48 +76,34 @@ class Player extends SpriteComponent with KeyboardHandler, HasGameRef<MaskShiftG
 
     if (keysPressed.contains(LogicalKeyboardKey.space) && isOnGround) {
       velocity.y = jumpSpeed;
-      isOnGround = false;
     }
     return true;
   }
 
   @override
-  void onCollision(Set<Vector2> intersectionPoints, PositionComponent other) {
-    super.onCollision(intersectionPoints, other);
-    
-    if (other is Platform) {
-      // Logika berdiri di atas platform (bukan cuma di y=500)
-      if (velocity.y > 0 && position.y + size.y * 0.9 < other.position.y) {
-        position.y = other.position.y - size.y;
-        velocity.y = 0;
-        isOnGround = true;
-      }
-    }
-  }
-
-  @override
   void onCollisionStart(Set<Vector2> intersectionPoints, PositionComponent other) {
     super.onCollisionStart(intersectionPoints, other);
+    
     if (other is MaskItem) {
       if (other.type == 'light') {
-        applyPowerUp(300, -750, Colors.blue);
+        applyPowerUp(300, -700, Colors.blue); // Jadi Ringan & Lompat Tinggi
       } else if (other.type == 'heavy') {
-        applyPowerUp(2500, -300, Colors.red);
+        applyPowerUp(2000, -300, Colors.red); // Jadi Berat & Lompat Pendek
       }
-      other.removeFromParent();
+      other.removeFromParent(); // Hapus topeng setelah diambil
     }
   }
 
   void applyPowerUp(double newGravity, double newJump, Color color) {
     gravity = newGravity;
     jumpSpeed = newJump;
-    // Beri efek warna pada karakter saat pakai topeng
-    paint.colorFilter = ColorFilter.mode(color.withOpacity(0.4), BlendMode.srcATop);
+    paint.color = color;
 
+    // Balik normal setelah 5 detik
     Future.delayed(Duration(seconds: 5), () {
       gravity = 1000;
       jumpSpeed = -500;
-      paint.colorFilter = null;
+      paint.color = Colors.white;
     });
   }
 }
@@ -123,7 +113,7 @@ class Platform extends RectangleComponent with CollisionCallbacks {
   Platform(Vector2 pos, Vector2 size) : super(
     position: pos, 
     size: size, 
-    paint: Paint()..color = Colors.green.withOpacity(0.5)
+    paint: Paint()..color = Colors.green
   ) {
     add(RectangleHitbox());
   }
